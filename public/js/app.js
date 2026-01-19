@@ -13,12 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // === AUTHENTICATION ===
 
 function initAuth() {
-  // Check if user is returning from email link
-  if (auth.isSignInWithEmailLink(window.location.href)) {
-    handleEmailLinkSignIn();
-    return;
-  }
-
   // Check auth state
   auth.onAuthStateChanged((user) => {
     if (user) {
@@ -30,23 +24,16 @@ function initAuth() {
   });
 }
 
-async function handleEmailLinkSignIn() {
-  let email = window.localStorage.getItem('emailForSignIn');
-  if (!email) {
-    email = window.prompt('Пожалуйста, введите ваш email для подтверждения');
-  }
-
+async function signInWithGoogle() {
   try {
-    const result = await auth.signInWithEmailLink(email, window.location.href);
-    window.localStorage.removeItem('emailForSignIn');
-    window.history.replaceState({}, document.title, window.location.pathname);
-
+    const result = await auth.signInWithPopup(googleProvider);
     currentUser = result.user;
     checkUserProfile(result.user.uid);
   } catch (error) {
-    console.error('Error signing in:', error);
-    alert('Ошибка входа. Попробуйте еще раз.');
-    UI.showScreen(UI.authScreen);
+    console.error('Error signing in with Google:', error);
+    if (error.code !== 'auth/popup-closed-by-user') {
+      alert('Ошибка входа через Google. Попробуйте еще раз.');
+    }
   }
 }
 
@@ -319,28 +306,7 @@ function listenForCallStatus(callId) {
 
 function setupEventListeners() {
   // Auth
-  document.getElementById('send-link-btn').addEventListener('click', async () => {
-    const email = document.getElementById('email-input').value.trim();
-    if (!email) {
-      alert('Введите email');
-      return;
-    }
-
-    try {
-      await auth.sendSignInLinkToEmail(email, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', email);
-      document.getElementById('auth-form').classList.add('hidden');
-      document.getElementById('auth-waiting').classList.remove('hidden');
-    } catch (error) {
-      console.error('Error sending email:', error);
-      alert('Ошибка отправки письма. Попробуйте еще раз.');
-    }
-  });
-
-  document.getElementById('resend-btn').addEventListener('click', () => {
-    document.getElementById('auth-form').classList.remove('hidden');
-    document.getElementById('auth-waiting').classList.add('hidden');
-  });
+  document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
 
   // Name setup
   document.getElementById('save-name-btn').addEventListener('click', () => {
