@@ -1,5 +1,6 @@
 # Firebase
 .firebase/
+public/js/firebase-config.js
 
 # Dependencies
 node_modules/
@@ -7,6 +8,9 @@ node_modules/
 # Environment
 .env
 .env.local
+
+# Secrets - API Keys and Credentials
+public/js/metered-config.js
 
 # IDE
 .vscode/

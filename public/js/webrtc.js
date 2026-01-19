@@ -5,15 +5,39 @@ const WebRTCManager = {
   remoteStream: null,
   currentCallId: null,
   isInitiator: false,
+  iceServers: null,
 
-  // ICE servers configuration
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
-  ],
+  // Fetch ICE servers from Metered API
+  async fetchIceServers() {
+    try {
+      const response = await fetch(
+        `https://mamaphone.metered.live/api/v1/turn/credentials?apiKey=${meteredConfig.apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch TURN credentials');
+      }
+
+      this.iceServers = await response.json();
+      console.log('✅ TURN credentials fetched successfully');
+    } catch (error) {
+      console.error('❌ Error fetching TURN credentials:', error);
+      // Fallback to basic STUN servers
+      this.iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun.relay.metered.ca:80' }
+      ];
+      console.warn('⚠️ Using fallback STUN servers only');
+    }
+  },
 
   // Initialize peer connection
   async initPeerConnection() {
+    // Fetch fresh ICE servers if not already loaded
+    if (!this.iceServers) {
+      await this.fetchIceServers();
+    }
+
     this.peerConnection = new RTCPeerConnection({
       iceServers: this.iceServers
     });
@@ -40,6 +64,16 @@ const WebRTCManager = {
       if (event.candidate && this.currentCallId) {
         const candidatePath = this.isInitiator ? 'iceCandidatesCaller' : 'iceCandidatesCallee';
         db.ref(`calls/${this.currentCallId}/${candidatePath}`).push(event.candidate.toJSON());
+      }
+    };
+
+    // ICE connection state monitoring
+    this.peerConnection.oniceconnectionstatechange = async () => {
+      console.log('ICE connection state:', this.peerConnection.iceConnectionState);
+
+      if (this.peerConnection.iceConnectionState === 'connected' ||
+          this.peerConnection.iceConnectionState === 'completed') {
+        await this.logConnectionType();
       }
     };
 
@@ -150,6 +184,71 @@ const WebRTCManager = {
     });
   },
 
+  // Log connection type (P2P or TURN)
+  async logConnectionType() {
+    try {
+      const stats = await this.peerConnection.getStats();
+      let connectionType = 'unknown';
+      let localCandidateType = '';
+      let remoteCandidateType = '';
+
+      stats.forEach(report => {
+        // Find the active candidate pair
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          // Get local candidate
+          const localCandidate = stats.get(report.localCandidateId);
+          if (localCandidate) {
+            localCandidateType = localCandidate.candidateType;
+          }
+
+          // Get remote candidate
+          const remoteCandidate = stats.get(report.remoteCandidateId);
+          if (remoteCandidate) {
+            remoteCandidateType = remoteCandidate.candidateType;
+          }
+
+          // Determine connection type
+          if (localCandidateType === 'relay' || remoteCandidateType === 'relay') {
+            connectionType = 'TURN';
+          } else if (localCandidateType === 'srflx' || remoteCandidateType === 'srflx') {
+            connectionType = 'STUN';
+          } else if (localCandidateType === 'host' && remoteCandidateType === 'host') {
+            connectionType = 'P2P';
+          }
+        }
+      });
+
+      console.log('🔗 Connection established via:', connectionType);
+      console.log('   Local candidate:', localCandidateType);
+      console.log('   Remote candidate:', remoteCandidateType);
+
+      // Update UI indicator
+      this.updateConnectionIndicator(connectionType);
+    } catch (error) {
+      console.error('Error getting connection stats:', error);
+    }
+  },
+
+  // Update connection type indicator in UI
+  updateConnectionIndicator(type) {
+    const indicator = document.getElementById('connection-indicator');
+    if (!indicator) return;
+
+    let icon = '⚪';
+    let text = 'Unknown';
+
+    if (type === 'P2P' || type === 'STUN') {
+      icon = '🟢';
+      text = 'P2P (direct)';
+    } else if (type === 'TURN') {
+      icon = '🟡';
+      text = 'TURN (relay)';
+    }
+
+    indicator.innerHTML = `${icon} ${text}`;
+    indicator.style.display = 'block';
+  },
+
   // Toggle speaker
   toggleSpeaker() {
     const remoteAudio = document.getElementById('remote-audio');
@@ -183,6 +282,12 @@ const WebRTCManager = {
       remoteAudio.srcObject = null;
     }
     this.remoteStream = null;
+
+    // Hide connection indicator
+    const indicator = document.getElementById('connection-indicator');
+    if (indicator) {
+      indicator.style.display = 'none';
+    }
 
     // Update call status in Firebase
     if (this.currentCallId) {

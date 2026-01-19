@@ -389,6 +389,18 @@ input::placeholder {
     flex: 1;
 }
 
+/* Connection Indicator */
+.connection-indicator {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: inline-block;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     header h1 {
