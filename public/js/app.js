@@ -213,8 +213,11 @@ async function initiateCall(calleeUid) {
 
 function listenForIncomingCalls(uid) {
   console.log('🎧 Setting up incoming call listener for UID:', uid);
+  console.log('🎧 Browser:', navigator.userAgent.includes('Safari') ? 'Safari' : 'Other');
 
   const callsRef = db.ref('calls');
+
+  // Firebase real-time listener
   callsRef.orderByChild('callee').equalTo(uid).on('child_added', async (snapshot) => {
     console.log('📞 New call detected:', snapshot.key);
     const call = snapshot.val();
@@ -240,6 +243,50 @@ function listenForIncomingCalls(uid) {
   });
 
   console.log('✅ Incoming call listener activated');
+
+  // Additional polling for Safari (backup mechanism)
+  if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+    console.log('🎧 Safari detected - enabling backup polling mechanism');
+    let lastCheckedTime = Date.now();
+
+    setInterval(async () => {
+      console.log('🔄 Polling for incoming calls...');
+      try {
+        const snapshot = await callsRef
+          .orderByChild('callee')
+          .equalTo(uid)
+          .once('value');
+
+        const calls = snapshot.val();
+        if (calls) {
+          for (const callId in calls) {
+            const call = calls[callId];
+            // Check if call is new (created after last check) and ringing
+            if (call.status === 'ringing' && call.createdAt > lastCheckedTime) {
+              console.log('📞 [Polling] Found new ringing call:', callId);
+
+              if (!activeCall) {
+                const callerData = await db.ref(`users/${call.caller}`).once('value');
+                const caller = callerData.val();
+
+                activeCall = {
+                  id: callId,
+                  caller: call.caller,
+                  callerName: caller.name
+                };
+
+                console.log('📞 [Polling] Showing incoming call UI');
+                UI.showIncomingCall(caller.name);
+              }
+            }
+          }
+        }
+        lastCheckedTime = Date.now();
+      } catch (error) {
+        console.error('❌ Polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+  }
 }
 
 async function acceptCall() {
