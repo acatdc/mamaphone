@@ -30,11 +30,21 @@
         </div>
     </div>
 
+    <!-- Debug Panel -->
+    <div id="debug-panel" class="debug-panel" style="display: none;">
+        <div class="debug-header">
+            <span>Debug Console</span>
+            <button id="debug-close-btn" class="debug-close">✕</button>
+        </div>
+        <div id="debug-logs" class="debug-logs"></div>
+    </div>
+
     <!-- Main Screen -->
     <div id="main-screen" class="screen hidden">
         <header>
             <h1>Контакты</h1>
             <div class="header-actions">
+                <button id="debug-toggle-btn" class="btn-icon" title="Debug">🐛</button>
                 <button id="share-contact-btn" class="btn-icon" title="Поделиться контактом">📤</button>
                 <button id="settings-btn" class="btn-icon" title="Настройки">⚙️</button>
             </div>

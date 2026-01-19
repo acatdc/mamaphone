@@ -212,12 +212,19 @@ async function initiateCall(calleeUid) {
 }
 
 function listenForIncomingCalls(uid) {
+  console.log('🎧 Setting up incoming call listener for UID:', uid);
+
   const callsRef = db.ref('calls');
   callsRef.orderByChild('callee').equalTo(uid).on('child_added', async (snapshot) => {
+    console.log('📞 New call detected:', snapshot.key);
     const call = snapshot.val();
+    console.log('📞 Call data:', call);
+
     if (call.status === 'ringing') {
+      console.log('📞 Call is ringing, fetching caller data...');
       const callerData = await db.ref(`users/${call.caller}`).once('value');
       const caller = callerData.val();
+      console.log('📞 Caller:', caller);
 
       activeCall = {
         id: snapshot.key,
@@ -225,9 +232,14 @@ function listenForIncomingCalls(uid) {
         callerName: caller.name
       };
 
+      console.log('📞 Showing incoming call UI for:', caller.name);
       UI.showIncomingCall(caller.name);
+    } else {
+      console.log('📞 Call status is not ringing:', call.status);
     }
   });
+
+  console.log('✅ Incoming call listener activated');
 }
 
 async function acceptCall() {
@@ -302,9 +314,86 @@ function listenForCallStatus(callId) {
   });
 }
 
+// === DEBUG PANEL ===
+
+const DebugPanel = {
+  isVisible: false,
+  maxLogs: 100,
+
+  init() {
+    // Override console methods
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    console.log = (...args) => {
+      originalLog.apply(console, args);
+      this.addLog('info', args.join(' '));
+    };
+
+    console.error = (...args) => {
+      originalError.apply(console, args);
+      this.addLog('error', args.join(' '));
+    };
+
+    console.warn = (...args) => {
+      originalWarn.apply(console, args);
+      this.addLog('warn', args.join(' '));
+    };
+  },
+
+  addLog(type, message) {
+    if (!this.isVisible) return;
+
+    const logsContainer = document.getElementById('debug-logs');
+    const entry = document.createElement('div');
+    entry.className = `debug-log-entry debug-log-${type}`;
+
+    const timestamp = new Date().toLocaleTimeString();
+    entry.textContent = `[${timestamp}] ${message}`;
+
+    logsContainer.appendChild(entry);
+
+    // Auto-scroll to bottom
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+
+    // Limit number of logs
+    while (logsContainer.children.length > this.maxLogs) {
+      logsContainer.removeChild(logsContainer.firstChild);
+    }
+  },
+
+  toggle() {
+    this.isVisible = !this.isVisible;
+    const panel = document.getElementById('debug-panel');
+    panel.style.display = this.isVisible ? 'flex' : 'none';
+  },
+
+  clear() {
+    document.getElementById('debug-logs').innerHTML = '';
+  }
+};
+
 // === EVENT LISTENERS ===
 
 function setupEventListeners() {
+  // Debug panel
+  DebugPanel.init();
+
+  const debugToggleBtn = document.getElementById('debug-toggle-btn');
+  if (debugToggleBtn) {
+    debugToggleBtn.addEventListener('click', () => {
+      DebugPanel.toggle();
+    });
+  }
+
+  const debugCloseBtn = document.getElementById('debug-close-btn');
+  if (debugCloseBtn) {
+    debugCloseBtn.addEventListener('click', () => {
+      DebugPanel.toggle();
+    });
+  }
+
   // Auth
   document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
 
