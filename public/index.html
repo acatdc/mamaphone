@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>Mamaphone</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen">
+        <div class="container">
+            <h1>🔊 Mamaphone</h1>
+            <p>Аудио-звонки для близких</p>
+            <div id="auth-form">
+                <input type="email" id="email-input" placeholder="Введите ваш email" autocomplete="email">
+                <button id="send-link-btn" class="btn-primary">Продолжить</button>
+            </div>
+            <div id="auth-waiting" class="hidden">
+                <p>📧 Письмо отправлено!</p>
+                <p class="small">Проверьте почту и нажмите на ссылку для входа</p>
+                <button id="resend-btn" class="btn-secondary">Отправить снова</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Name Setup Screen (first time) -->
+    <div id="name-screen" class="screen hidden">
+        <div class="container">
+            <h2>Как вас зовут?</h2>
+            <input type="text" id="name-input" placeholder="Ваше имя" maxlength="30">
+            <button id="save-name-btn" class="btn-primary">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- Main Screen -->
+    <div id="main-screen" class="screen hidden">
+        <header>
+            <h1>Контакты</h1>
+            <div class="header-actions">
+                <button id="share-contact-btn" class="btn-icon" title="Поделиться контактом">📤</button>
+                <button id="settings-btn" class="btn-icon" title="Настройки">⚙️</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Add Contact Section -->
+            <div class="add-contact-section">
+                <button id="add-contact-btn" class="btn-secondary">+ Добавить контакт</button>
+            </div>
+
+            <!-- Contacts List -->
+            <div id="contacts-list" class="contacts-list">
+                <!-- Contacts will be rendered here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state">
+                <p>📱 Пока нет контактов</p>
+                <p class="small">Добавьте друзей чтобы начать звонить</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="add-contact-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Добавить контакт</h3>
+            <input type="email" id="contact-email-input" placeholder="Email друга" autocomplete="off">
+            <div class="modal-actions">
+                <button id="cancel-add-btn" class="btn-secondary">Отмена</button>
+                <button id="confirm-add-btn" class="btn-primary">Добавить</button>
+            </div>
+            <p id="add-contact-error" class="error hidden"></p>
+        </div>
+    </div>
+
+    <!-- Share Contact Modal -->
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Поделиться контактом</h3>
+            <p class="small">Отправьте эту ссылку друзьям:</p>
+            <div class="share-link-box">
+                <input type="text" id="share-link" readonly>
+                <button id="copy-link-btn" class="btn-icon">📋</button>
+            </div>
+            <button id="close-share-btn" class="btn-secondary">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Incoming Call Screen -->
+    <div id="incoming-call-screen" class="screen hidden">
+        <div class="container call-container">
+            <h2 id="caller-name">Входящий звонок...</h2>
+            <div class="call-avatar">📞</div>
+            <div class="call-actions">
+                <button id="decline-call-btn" class="btn-danger">Отклонить</button>
+                <button id="accept-call-btn" class="btn-success">Ответить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outgoing Call Screen -->
+    <div id="outgoing-call-screen" class="screen hidden">
+        <div class="container call-container">
+            <h2 id="callee-name">Звоним...</h2>
+            <div class="call-avatar">📞</div>
+            <button id="cancel-call-btn" class="btn-danger">Отменить</button>
+        </div>
+    </div>
+
+    <!-- Active Call Screen -->
+    <div id="active-call-screen" class="screen hidden">
+        <div class="container call-container">
+            <h2 id="active-call-name">На связи</h2>
+            <div class="call-avatar">🔊</div>
+            <div id="call-timer" class="call-timer">00:00</div>
+            <div class="call-actions">
+                <button id="speaker-toggle-btn" class="btn-secondary">🔇 Громкая связь</button>
+                <button id="end-call-btn" class="btn-danger">Завершить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio element for remote stream -->
+    <audio id="remote-audio" autoplay></audio>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/webrtc.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
