@@ -250,7 +250,6 @@ function listenForIncomingCalls(uid) {
     let lastCheckedTime = Date.now();
 
     setInterval(async () => {
-      console.log('🔄 Polling for incoming calls...');
       try {
         const snapshot = await callsRef
           .orderByChild('callee')
