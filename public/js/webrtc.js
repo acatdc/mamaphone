@@ -40,9 +40,18 @@ const WebRTCManager = {
       await this.fetchIceServers();
     }
 
-    this.peerConnection = new RTCPeerConnection({
+    // Check if force TURN is enabled
+    const forceTurn = localStorage.getItem('forceTurn') === 'true';
+    const config = {
       iceServers: this.iceServers
-    });
+    };
+
+    if (forceTurn) {
+      config.iceTransportPolicy = 'relay';
+      console.log('⚙️ Force TURN enabled - using relay only');
+    }
+
+    this.peerConnection = new RTCPeerConnection(config);
 
     // Add local stream tracks
     if (this.localStream) {

@@ -440,6 +440,33 @@ function setupEventListeners() {
     });
   }
 
+  // Settings
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      UI.showModal(document.getElementById('settings-modal'));
+
+      // Load current setting
+      const forceTurn = localStorage.getItem('forceTurn') === 'true';
+      document.getElementById('force-turn-checkbox').checked = forceTurn;
+    });
+  }
+
+  const closeSettingsBtn = document.getElementById('close-settings-btn');
+  if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener('click', () => {
+      UI.hideModal(document.getElementById('settings-modal'));
+    });
+  }
+
+  const forceTurnCheckbox = document.getElementById('force-turn-checkbox');
+  if (forceTurnCheckbox) {
+    forceTurnCheckbox.addEventListener('change', (e) => {
+      localStorage.setItem('forceTurn', e.target.checked);
+      console.log('⚙️ Force TURN:', e.target.checked ? 'enabled' : 'disabled');
+    });
+  }
+
   // Auth
   document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
 

@@ -95,6 +95,21 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Настройки</h3>
+            <div class="settings-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="force-turn-checkbox">
+                    <span>Принудительно использовать TURN</span>
+                </label>
+                <p class="small">Для отладки: заставляет WebRTC использовать только TURN серверы, даже если возможно P2P соединение</p>
+            </div>
+            <button id="close-settings-btn" class="btn-secondary">Закрыть</button>
+        </div>
+    </div>
+
     <!-- Incoming Call Screen -->
     <div id="incoming-call-screen" class="screen hidden">
         <div class="container call-container">
