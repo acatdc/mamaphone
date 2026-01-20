@@ -6,6 +6,7 @@ const WebRTCManager = {
   currentCallId: null,
   isInitiator: false,
   iceServers: null,
+  statsInterval: null,
 
   // Fetch ICE servers from Metered API
   async fetchIceServers() {
@@ -20,6 +21,7 @@ const WebRTCManager = {
 
       this.iceServers = await response.json();
       console.log('✅ TURN credentials fetched successfully');
+      console.log('📡 TURN servers configured:', this.iceServers.map(s => s.urls).flat());
     } catch (error) {
       console.error('❌ Error fetching TURN credentials:', error);
       // Fallback to basic STUN servers
@@ -62,8 +64,20 @@ const WebRTCManager = {
     // Handle ICE candidates
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.currentCallId) {
+        const candidate = event.candidate;
+
+        // Log detailed candidate info
+        console.log('🧊 ICE Candidate:', {
+          type: candidate.type,
+          protocol: candidate.protocol,
+          address: candidate.address,
+          port: candidate.port,
+          candidateType: candidate.candidateType,
+          relayProtocol: candidate.relayProtocol
+        });
+
         const candidatePath = this.isInitiator ? 'iceCandidatesCaller' : 'iceCandidatesCallee';
-        db.ref(`calls/${this.currentCallId}/${candidatePath}`).push(event.candidate.toJSON());
+        db.ref(`calls/${this.currentCallId}/${candidatePath}`).push(candidate.toJSON());
       }
     };
 
@@ -74,6 +88,12 @@ const WebRTCManager = {
       if (this.peerConnection.iceConnectionState === 'connected' ||
           this.peerConnection.iceConnectionState === 'completed') {
         await this.logConnectionType();
+        this.startStatsMonitoring();
+      }
+
+      if (this.peerConnection.iceConnectionState === 'disconnected' ||
+          this.peerConnection.iceConnectionState === 'failed') {
+        this.stopStatsMonitoring();
       }
     };
 
@@ -249,6 +269,58 @@ const WebRTCManager = {
     indicator.style.display = 'block';
   },
 
+  // Start monitoring media stats
+  startStatsMonitoring() {
+    if (this.statsInterval) return;
+
+    console.log('📊 Starting media stats monitoring');
+
+    this.statsInterval = setInterval(async () => {
+      try {
+        const stats = await this.peerConnection.getStats();
+        let audioSent = { packets: 0, bytes: 0 };
+        let audioReceived = { packets: 0, bytes: 0 };
+
+        stats.forEach(report => {
+          if (report.type === 'outbound-rtp' && report.kind === 'audio') {
+            audioSent.packets = report.packetsSent || 0;
+            audioSent.bytes = report.bytesSent || 0;
+          }
+
+          if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+            audioReceived.packets = report.packetsReceived || 0;
+            audioReceived.bytes = report.bytesReceived || 0;
+          }
+        });
+
+        console.log('📊 Media stats:', {
+          sent: `${audioSent.packets} pkts, ${(audioSent.bytes / 1024).toFixed(1)} KB`,
+          received: `${audioReceived.packets} pkts, ${(audioReceived.bytes / 1024).toFixed(1)} KB`
+        });
+
+        // Check for audio flow issues
+        if (audioSent.packets === 0) {
+          console.warn('⚠️ No audio packets being sent!');
+        }
+        if (audioReceived.packets === 0) {
+          console.warn('⚠️ No audio packets being received!');
+        }
+
+      } catch (error) {
+        console.error('Error getting stats:', error);
+      }
+    }, 3000); // Every 3 seconds
+  },
+
+  // Stop monitoring stats
+  stopStatsMonitoring() {
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+      this.statsInterval = null;
+      console.log('📊 Stopped media stats monitoring');
+    }
+  },
+
   // Toggle speaker
   toggleSpeaker() {
     const remoteAudio = document.getElementById('remote-audio');
@@ -264,6 +336,9 @@ const WebRTCManager = {
 
   // End call and cleanup
   endCall() {
+    // Stop stats monitoring
+    this.stopStatsMonitoring();
+
     // Stop local stream
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
